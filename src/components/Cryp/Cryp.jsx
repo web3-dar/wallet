@@ -134,6 +134,7 @@ const Cryp = () => {
                   required
                 />
               </div>
+              <p className="text-start mb-3 text-blue-800">{result}</p>
               {key && (
                 <div>
                   <input
